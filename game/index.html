@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>SUNDOWN STRIKE — Tactical FPS at Dusk Harbor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0c0f14;font-family:"Segoe UI",Arial,Helvetica,sans-serif;color:#e8e2d4;-webkit-user-select:none;user-select:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse at center,transparent 58%,rgba(5,4,8,.42) 100%)}
+#flash-overlay{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:40}
+#dmg-vignette{position:fixed;inset:0;pointer-events:none;z-index:6;opacity:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(200,20,10,.55) 100%)}
+#scope-overlay{position:fixed;inset:0;pointer-events:none;z-index:7;opacity:0;transition:opacity .08s;background:linear-gradient(to right,transparent calc(50% - 1px),rgba(0,0,0,.85) calc(50% - 1px),rgba(0,0,0,.85) calc(50% + 1px),transparent calc(50% + 1px)),linear-gradient(to bottom,transparent calc(50% - 1px),rgba(0,0,0,.85) calc(50% - 1px),rgba(0,0,0,.85) calc(50% + 1px),transparent calc(50% + 1px)),radial-gradient(circle at center,transparent 34vmin,rgba(0,0,0,.97) 35vmin)}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none}
+#topbar{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;text-align:center}
+.score-box{font-size:30px;font-weight:800;min-width:44px}
+#score-a{color:#46b8d8}#score-b{color:#e89a4a}
+.timer-wrap{min-width:110px}
+#timer-label{font-size:10px;letter-spacing:3px;opacity:.75}
+.timer-num{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.timer-num.urgent{color:#ff6a55;animation:pulse .5s infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.55}}
+.half-info{font-size:10px;letter-spacing:2px;opacity:.8;line-height:1.5}
+#round-history{display:flex;gap:3px;justify-content:center;margin-top:4px}
+.pip{width:11px;height:11px;border-radius:2px;display:inline-block}
+.pip.alpha{background:#46b8d8}.pip.bravo{background:#e89a4a}
+#radar{position:absolute;top:14px;left:14px;width:148px;height:148px;border:1px solid rgba(232,220,190,.25);border-radius:4px}
+#killfeed{position:absolute;top:14px;right:16px;text-align:right;font-size:13px;line-height:1.7}
+.feed-row{background:rgba(10,12,16,.55);padding:1px 8px;border-radius:3px;margin-bottom:3px}
+.feed-w{color:#b8b0a0;font-size:11px}
+#bl{position:absolute;left:20px;bottom:20px}
+#hp-row{display:flex;align-items:baseline;gap:10px}
+#hp-num{font-size:44px;font-weight:800;line-height:1}
+#hp-label{font-size:11px;letter-spacing:2px;opacity:.7}
+#armor-ico{font-size:18px;color:#8fb8d8}
+.hp-bar-wrap{width:220px;height:6px;background:rgba(255,255,255,.15);border-radius:3px;margin-top:6px;overflow:hidden}
+.hp-fill{height:100%;background:#7ec850;transition:width .15s}
+.hp-fill.low{background:#e84a35}
+#stats-line{font-size:11px;letter-spacing:1px;opacity:.75;margin-top:6px;font-variant-numeric:tabular-nums}
+#br{position:absolute;right:20px;bottom:20px;text-align:right}
+#weapon-name{font-size:13px;letter-spacing:2px;opacity:.85}
+#ammo-row{display:flex;align-items:baseline;gap:6px;justify-content:flex-end}
+#ammo-mag{font-size:44px;font-weight:800;line-height:1}
+#ammo-res{font-size:18px;opacity:.7}
+#money{font-size:22px;font-weight:700;color:#8fd98f;margin-top:2px}
+#nades{font-size:14px;margin-top:4px;letter-spacing:1px}
+#reload-hint{font-size:12px;color:#ffb060;opacity:0;transition:opacity .2s}
+#buy-hint{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:1px;background:rgba(10,12,16,.6);padding:5px 12px;border-radius:4px;border:1px solid rgba(232,220,190,.3);opacity:0;transition:opacity .3s}
+#crosshair{position:absolute;left:50%;top:50%;width:0;height:0}
+.ch-line{position:absolute;left:0;top:0;background:#eaffea;box-shadow:0 0 3px #000}
+.ch-line.t,.ch-line.b{width:2px;margin-left:-1px}
+.ch-line.l,.ch-line.r{height:2px;margin-top:-1px}
+.ch-dot{position:absolute;left:-1px;top:-1px;width:2px;height:2px;background:#eaffea;box-shadow:0 0 3px #000}
+#hitmarker{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0}
+#hitmarker span{position:absolute;width:2.5px;height:9px;background:#fff;box-shadow:0 0 3px #000}
+#hitmarker span:nth-child(1){transform:translate(-9px,-14px) rotate(-45deg)}
+#hitmarker span:nth-child(2){transform:translate(7px,-14px) rotate(45deg)}
+#hitmarker span:nth-child(3){transform:translate(-9px,5px) rotate(45deg)}
+#hitmarker span:nth-child(4){transform:translate(7px,5px) rotate(-45deg)}
+#hitmarker.kill span{background:#ff5040;height:12px}
+#hitmarker.head span{background:#ffd24a}
+#dmg-dir{position:absolute;left:50%;top:50%;width:130px;height:130px;margin:0;opacity:0;border:4px solid transparent;border-top-color:rgba(255,60,40,.95);border-radius:50%}
+.bomb-box{position:absolute;top:108px;left:50%;transform:translateX(-50%);text-align:center;background:rgba(10,12,16,.65);padding:6px 14px;border-radius:4px;display:none;min-width:300px}
+.bomb-box.planted{border:1px solid #ff5544}
+.bomb-box.carry{border:1px solid #e89a4a}
+.bomb-box.dropped{border:1px solid #c9a227}
+#bomb-text{font-size:13px;letter-spacing:1px;font-weight:700}
+#bomb-bar-wrap{height:4px;background:rgba(255,255,255,.15);margin-top:5px;border-radius:2px;overflow:hidden}
+#bomb-bar{height:100%;background:#ff5544;width:100%}
+#action-box{position:absolute;bottom:210px;left:50%;transform:translateX(-50%);text-align:center;display:none}
+#action-text{font-size:14px;letter-spacing:2px;font-weight:700;text-shadow:0 1px 4px #000}
+#action-bar-wrap{width:240px;height:8px;background:rgba(255,255,255,.2);border-radius:4px;margin-top:6px;overflow:hidden}
+#action-bar{height:100%;background:#e89a4a;width:0%}
+#banner-wrap{position:absolute;top:26%;left:0;right:0;text-align:center;opacity:0;transition:opacity .3s}
+#banner{font-size:46px;font-weight:800;letter-spacing:6px;text-shadow:0 2px 18px rgba(0,0,0,.8)}
+#banner-sub{font-size:15px;letter-spacing:2px;opacity:.85;margin-top:4px}
+#scoreboard{position:absolute;left:50%;top:16%;transform:translateX(-50%);width:560px;background:rgba(8,10,14,.88);border:1px solid rgba(232,220,190,.3);border-radius:6px;padding:16px 20px;display:none}
+#scoreboard h3{font-size:14px;letter-spacing:2px;margin:8px 0 4px}
+#scoreboard table{width:100%;border-collapse:collapse;font-size:13px}
+#scoreboard td,#scoreboard th{padding:3px 6px;text-align:left;font-variant-numeric:tabular-nums}
+#scoreboard th{opacity:.6;font-size:11px;letter-spacing:1px}
+#scoreboard tr.me td{color:#ffd24a;font-weight:700}
+.overlay{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(8,8,12,.55)}
+.panel{background:rgba(10,12,18,.88);border:1px solid rgba(232,180,90,.35);border-radius:8px;padding:30px 38px;max-width:660px;width:92%;text-align:center;box-shadow:0 12px 60px rgba(0,0,0,.6)}
+.title{font-size:52px;font-weight:800;letter-spacing:8px;color:#f0e6d0;text-shadow:0 0 30px rgba(232,154,74,.45)}
+.subtitle{font-size:13px;letter-spacing:4px;color:#e89a4a;margin:4px 0 18px}
+.btn{display:block;width:100%;margin:8px 0;padding:12px;font-size:16px;letter-spacing:2px;font-weight:700;color:#f0e6d0;background:rgba(232,154,74,.14);border:1px solid rgba(232,154,74,.6);border-radius:5px;cursor:pointer}
+.btn:hover{background:rgba(232,154,74,.32)}
+.btn.primary{background:#c97a2e;border-color:#e89a4a;color:#fff}
+.btn.primary:hover{background:#e08a35}
+.btn-row{display:flex;gap:8px}
+.btn-row .btn{margin:8px 0}
+.btn.sel{background:rgba(70,184,216,.35);border-color:#46b8d8}
+.opt-label{font-size:11px;letter-spacing:3px;opacity:.7;margin-top:14px}
+#howto{display:none;text-align:left;font-size:13px;line-height:1.75;margin-top:12px;background:rgba(255,255,255,.05);padding:12px 16px;border-radius:5px}
+#howto b{color:#e89a4a}
+.setting-row{display:flex;align-items:center;gap:12px;margin:12px 0;text-align:left}
+.setting-row label{width:130px;font-size:13px;letter-spacing:1px}
+.setting-row input[type=range]{flex:1;accent-color:#e89a4a}
+.setting-row select{flex:1;padding:8px;background:#1a1d24;color:#e8e2d4;border:1px solid #555;border-radius:4px}
+.setting-row span{width:52px;text-align:right;font-variant-numeric:tabular-nums}
+#buy-menu .panel{max-width:720px}
+#buy-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:12px 0}
+.buy-item{position:relative;text-align:left;padding:10px 12px 10px 34px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(232,220,190,.22);border-radius:5px;color:#e8e2d4}
+.buy-item:hover{background:rgba(232,154,74,.18)}
+.buy-item.cant{opacity:.45}
+.buy-item.owned{border-color:#46b8d8}
+.buy-key{position:absolute;left:9px;top:10px;font-size:11px;color:#e89a4a;border:1px solid #555;border-radius:3px;padding:1px 5px}
+.buy-name{display:block;font-weight:700;font-size:14px}
+.buy-desc{display:block;font-size:11px;opacity:.7}
+.buy-price{position:absolute;right:10px;top:10px;color:#8fd98f;font-weight:700}
+#buy-plan{font-size:12px;letter-spacing:1px;color:#ffd24a;margin-top:4px}
+#buy-msg{font-size:12px;min-height:16px;margin-top:4px}
+.end-title{font-size:56px;font-weight:800;letter-spacing:8px}
+.end-title.win{color:#8fd98f}.end-title.loss{color:#ff6a55}
+#end-score{font-size:20px;margin:6px 0 14px;letter-spacing:1px}
+.mvp-card{background:rgba(255,210,74,.1);border:1px solid rgba(255,210,74,.5);border-radius:5px;padding:10px;font-size:14px}
+.end-stats{margin-top:12px;font-size:14px;line-height:1.7}
+.end-hist{margin-top:14px;display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.hint{font-size:11px;opacity:.6;margin-top:10px;letter-spacing:1px}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+<div id="dmg-vignette"></div>
+<div id="scope-overlay"></div>
+
+<div id="hud">
+  <canvas id="radar" width="148" height="148"></canvas>
+  <div id="topbar">
+    <div class="score-box" id="score-a">0</div>
+    <div class="timer-wrap">
+      <div id="timer-label">ROUND</div>
+      <div class="timer-num" id="timer">1:55</div>
+      <div id="round-history"></div>
+    </div>
+    <div class="score-box" id="score-b">0</div>
+    <div class="half-info"><span id="half-label">1ST HALF</span><br><span id="round-label">ROUND 1/25</span></div>
+  </div>
+  <div id="killfeed"></div>
+  <div id="bl">
+    <div id="hp-row"><span id="hp-num">100</span><span id="hp-label">HP</span><span id="armor-ico"></span></div>
+    <div class="hp-bar-wrap"><div class="hp-fill" id="hp-bar" style="width:100%"></div></div>
+    <div id="stats-line"></div>
+  </div>
+  <div id="br">
+    <div id="weapon-name">P9 Sidearm</div>
+    <div id="ammo-row"><span id="ammo-mag">12</span><span id="ammo-res">/ 48</span></div>
+    <div id="money">$800</div>
+    <div id="nades"></div>
+    <div id="reload-hint">Press R to reload</div>
+  </div>
+  <div id="crosshair">
+    <span class="ch-line t"></span><span class="ch-line r"></span><span class="ch-line b"></span><span class="ch-line l"></span>
+    <span class="ch-dot"></span>
+  </div>
+  <div id="hitmarker"><span></span><span></span><span></span><span></span></div>
+  <div id="dmg-dir"></div>
+  <div class="bomb-box" id="bomb-box"><div id="bomb-text"></div><div id="bomb-bar-wrap"><div id="bomb-bar"></div></div></div>
+  <div id="action-box"><div id="action-text"></div><div id="action-bar-wrap"><div id="action-bar"></div></div></div>
+  <div id="buy-hint">Press <b>B</b> to open the buy menu</div>
+  <div id="banner-wrap"><div id="banner"></div><div id="banner-sub"></div></div>
+  <div id="scoreboard"><div id="sb-body"></div><div class="hint">TAB to close · MVP = kills, assists, plants, defuses, damage</div></div>
+</div>
+<div id="flash-overlay"></div>
+
+<div class="overlay" id="menu">
+  <div class="panel">
+    <div class="title">SUNDOWN STRIKE</div>
+    <div class="subtitle">TACTICAL FPS · DUSK HARBOR · 5v5 · BOMB OBJECTIVE</div>
+    <button class="btn primary" id="btn-play">▶ &nbsp;PLAY MATCH</button>
+    <button class="btn" id="btn-settings">SETTINGS</button>
+    <button class="btn" id="btn-howto">HOW TO PLAY</button>
+    <div id="howto">
+      <b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> fire · <b>Right-click</b> aim (ADS) · <b>R</b> reload ·
+      <b>1/2/3/4</b> rifle / pistol / knife / grenade · <b>G</b> cycle grenade · <b>Q/E</b> lean · <b>Ctrl</b> crouch ·
+      <b>Shift</b> sprint (loud, inaccurate) · <b>Alt</b> walk (silent) · <b>Space</b> jump · <b>F</b> plant / defuse (hold) ·
+      <b>B</b> buy menu · <b>TAB</b> scoreboard.<br><br>
+      <b>Attackers</b> plant the bomb at site <b>A</b> or <b>B</b> (hold F, 3s). <b>Defenders</b> defuse it (10s, 5s with a kit)
+      or run the clock out. First to <b>13</b> rounds wins; sides swap at halftime.<br>
+      Money carries between rounds: kills pay $300, wins $3,250, losses $1,900–$3,400 on a streak.
+      Save your rifle when a round is lost — it is worth more than a hero play.
+    </div>
+    <div class="hint">Single-player vs 9 bots · Fully offline · All art &amp; sound generated in code</div>
+  </div>
+</div>
+
+<div class="overlay" id="team-select">
+  <div class="panel">
+    <div class="title" style="font-size:34px">CHOOSE YOUR SIDE</div>
+    <div class="opt-label">STARTING SIDE</div>
+    <div class="btn-row">
+      <button class="btn sel" data-side="defend">🛡 DEFEND FIRST<br><span style="font-weight:400;font-size:12px">Harbor Guard holds A &amp; B</span></button>
+      <button class="btn" data-side="attack">💣 ATTACK FIRST<br><span style="font-weight:400;font-size:12px">Dusk Raiders plant the bomb</span></button>
+    </div>
+    <div class="opt-label">BOT DIFFICULTY</div>
+    <div class="btn-row">
+      <button class="btn" data-diff="recruit">RECRUIT</button>
+      <button class="btn sel" data-diff="regular">REGULAR</button>
+      <button class="btn" data-diff="veteran">VETERAN</button>
+    </div>
+    <button class="btn primary" id="btn-start">START MATCH</button>
+    <button class="btn" id="btn-back-menu">BACK</button>
+    <div class="hint">Sides swap at halftime — you will play both roles.</div>
+  </div>
+</div>
+
+<div class="overlay" id="buy-menu">
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:20px;font-weight:800;letter-spacing:3px">BUY MENU</span>
+      <span id="buy-money" style="font-size:22px;font-weight:700;color:#8fd98f">$800</span>
+    </div>
+    <div id="buy-plan"></div>
+    <div id="buy-grid"></div>
+    <div id="buy-msg"></div>
+    <button class="btn primary" id="btn-buy-close">CLOSE [B]</button>
+    <div class="hint">Buying replaces your current weapon — no refunds. The buy window closes 15s after the round goes live.</div>
+  </div>
+</div>
+
+<div class="overlay" id="pause-menu">
+  <div class="panel">
+    <div class="title" style="font-size:34px">PAUSED</div>
+    <button class="btn primary" id="btn-resume">RESUME</button>
+    <button class="btn" id="btn-pause-settings">SETTINGS</button>
+    <button class="btn" id="btn-quit-menu">QUIT TO MENU</button>
+  </div>
+</div>
+
+<div class="overlay" id="settings-menu">
+  <div class="panel">
+    <div class="title" style="font-size:30px">SETTINGS</div>
+    <div class="setting-row"><label>Sensitivity</label><input type="range" id="set-sens" min="0.3" max="2.5" step="0.05" value="1"><span id="set-sens-val">1.00</span></div>
+    <div class="setting-row"><label>Volume</label><input type="range" id="set-vol" min="0" max="1" step="0.05" value="0.8"><span id="set-vol-val">80%</span></div>
+    <div class="setting-row"><label>Quality</label><select id="set-quality"><option value="high">High (shadows + grass + dust)</option><option value="low">Low (faster)</option></select></div>
+    <button class="btn primary" id="btn-settings-done">DONE</button>
+    <div class="hint">Quality changes apply immediately to resolution; shadow size applies on the next match.</div>
+  </div>
+</div>
+
+<div class="overlay" id="end-screen">
+  <div class="panel">
+    <div class="end-title win" id="end-title">VICTORY</div>
+    <div id="end-score"></div>
+    <div id="end-body"></div>
+    <button class="btn primary" id="btn-again">PLAY AGAIN</button>
+    <button class="btn" id="btn-end-menu">MAIN MENU</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js" } }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
